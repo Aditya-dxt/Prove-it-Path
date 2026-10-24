@@ -87,3 +87,5 @@ export interface LearningGoal {
   description: string;
   estimatedMinutes: number;
 }
+
+export type Goal = LearningGoal;
