@@ -35,9 +35,35 @@ export const STARTER_TASK: Task = {
     }
   ],
   contrastExample: {
-    title: 'Projection vs Wildcard',
-    description: 'Selecting specific columns rather than using SELECT *',
+    title: 'Projection vs Wildcard (SELECT * vs Specific Columns)',
+    description: 'Selecting specific columns rather than using SELECT * to avoid unwanted payload.',
     sql: 'SELECT name, department FROM employees;',
-    explanation: 'A projection ensures only the requested columns (name, department) are returned, preventing unwanted columns from failing the evaluation.'
+    explanation: 'A projection ensures only the requested columns (name, department) are returned. Using SELECT * returns all 5 columns (id, name, department, salary, hire_date), failing the required schema contract.'
+  },
+  variantTaskId: 'task-select-02'
+};
+
+export const VARIANT_TASK: Task = {
+  id: 'task-select-02',
+  nodeId: 'select',
+  title: 'Employee Hire Dates (Variant Practice)',
+  description: 'Return the name and hire_date for all employees in the dataset.',
+  orderMatters: false,
+  starterSql: '-- Return the name and hire_date of all employees\nSELECT name, hire_date\nFROM employees;',
+  schema: STARTER_TASK.schema,
+  contrastExample: {
+    title: 'Projection Consistency',
+    description: 'Ensure exact column match for name and hire_date without extra fields.',
+    sql: 'SELECT name, hire_date FROM employees;',
+    explanation: 'Only the requested fields (name, hire_date) should be queried.'
   }
 };
+
+export const ALL_TASKS: Record<string, Task> = {
+  'task-select-01': STARTER_TASK,
+  'task-select-02': VARIANT_TASK
+};
+
+export function getTaskById(taskId: string): Task {
+  return ALL_TASKS[taskId] || STARTER_TASK;
+}

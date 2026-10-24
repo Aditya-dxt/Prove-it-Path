@@ -4,17 +4,20 @@ import {
   Task,
   Prediction,
   EvaluationOutcome,
-  RoadmapNode
+  RoadmapNode,
+  AIExplanationResponse
 } from '../types/contract';
-import { STARTER_TASK, INITIAL_ROADMAP_NODES } from '../data/tasks';
+import { STARTER_TASK, VARIANT_TASK, INITIAL_ROADMAP_NODES } from '../data/tasks';
 import { runMockEvaluation } from '../lib/mockEngine';
+import { apiClient } from '../lib/api';
 import { Header } from '../components/Layout/Header';
 import { RoadmapView } from '../components/Roadmap/RoadmapView';
 import { TaskHeader } from '../components/Workspace/TaskHeader';
 import { SchemaViewer } from '../components/Schema/SchemaViewer';
 import { PredictionGate } from '../components/Workspace/PredictionGate';
 import { SqlEditor } from '../components/Workspace/SqlEditor';
-import { MockResultView } from '../components/Results/MockResultView';
+import { ResultComparisonView } from '../components/Results/ResultComparisonView';
+import { InterventionPanel } from '../components/Interventions/InterventionPanel';
 
 interface LearningWorkspacePageProps {
   goal: LearningGoal;
@@ -25,13 +28,14 @@ export const LearningWorkspacePage: React.FC<LearningWorkspacePageProps> = ({
   goal,
   onRestartGoal
 }) => {
-  const [task] = useState<Task>(STARTER_TASK);
+  const [task, setTask] = useState<Task>(STARTER_TASK);
   const [roadmap, setRoadmap] = useState<RoadmapNode[]>(INITIAL_ROADMAP_NODES);
   const [userSql, setUserSql] = useState<string>(STARTER_TASK.starterSql);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [outcome, setOutcome] = useState<EvaluationOutcome | null>(null);
   const [submittedSql, setSubmittedSql] = useState<string | null>(null);
+  const [aiExplanation, setAiExplanation] = useState<AIExplanationResponse | null>(null);
   const [schemaOpen, setSchemaOpen] = useState<boolean>(true);
   const [remainingMinutes, setRemainingMinutes] = useState<number>(goal.estimatedMinutes);
 
@@ -47,10 +51,37 @@ export const LearningWorkspacePage: React.FC<LearningWorkspacePageProps> = ({
     setSubmittedSql(userSql);
 
     try {
-      const evaluationResult = await runMockEvaluation(task, userSql, prediction);
+      const evaluationResult = await runMockEvaluation(
+        task,
+        userSql,
+        prediction,
+        { simulatedDelayMs: 400 },
+        roadmap
+      );
       setOutcome(evaluationResult);
       setRoadmap(evaluationResult.roadmap);
       setRemainingMinutes(evaluationResult.remainingMinutes);
+
+      // Request or format explanation if gap or mirage occurred
+      if (evaluationResult.state === 'mirage' || evaluationResult.state === 'honest_gap') {
+        try {
+          const aiResponse = await apiClient.requestExplanation({
+            taskId: task.id,
+            sql: userSql,
+            outcome: evaluationResult
+          });
+          setAiExplanation(aiResponse);
+        } catch {
+          // Graceful template fallback
+          setAiExplanation({
+            text: evaluationResult.diagnosis,
+            source: 'template',
+            fallbackUsed: true
+          });
+        }
+      } else {
+        setAiExplanation(null);
+      }
     } catch (err) {
       console.error('Mock evaluation error:', err);
     } finally {
@@ -58,8 +89,8 @@ export const LearningWorkspacePage: React.FC<LearningWorkspacePageProps> = ({
     }
   };
 
-  // Reset to edit mode on retry
-  const handleRetry = () => {
+  // Reset to edit mode for current task
+  const handleRetryTask = () => {
     setOutcome(null);
     setSubmittedSql(null);
   };
@@ -76,6 +107,25 @@ export const LearningWorkspacePage: React.FC<LearningWorkspacePageProps> = ({
     setSubmittedSql(null);
   };
 
+  // Apply contrast query to editor
+  const handleApplyContrastSql = (sql: string) => {
+    setUserSql(sql);
+    setOutcome(null);
+    setSubmittedSql(null);
+  };
+
+  // Launch variant retry task
+  const handleLaunchVariantTask = () => {
+    setTask(VARIANT_TASK);
+    setUserSql(VARIANT_TASK.starterSql);
+    setPrediction(null); // Fresh prediction required!
+    setOutcome(null);
+    setSubmittedSql(null);
+    setAiExplanation(null);
+  };
+
+  const hasVariant = Boolean(task.variantTaskId || task.id === 'task-select-01');
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', paddingBottom: '3rem' }}>
       {/* Header */}
@@ -85,7 +135,7 @@ export const LearningWorkspacePage: React.FC<LearningWorkspacePageProps> = ({
         onRestartGoal={onRestartGoal}
       />
 
-      {/* 5-Node SQL Roadmap */}
+      {/* 5-Node SQL Roadmap with Adaptive Re-check Support */}
       <RoadmapView
         nodes={roadmap}
         activeNodeId={task.nodeId}
@@ -129,13 +179,27 @@ export const LearningWorkspacePage: React.FC<LearningWorkspacePageProps> = ({
             />
           )}
 
-          {/* Query Result (revealed after run) */}
+          {/* Results Comparison View */}
           {outcome && submittedSql && (
-            <MockResultView
+            <ResultComparisonView
               outcome={outcome}
               submittedSql={submittedSql}
               prediction={prediction}
-              onRetry={handleRetry}
+              orderMatters={task.orderMatters}
+            />
+          )}
+
+          {/* State-Specific Intervention Panel (Mirage, Honest Gap, Hidden Strength, Proven, Slip) */}
+          {outcome && (
+            <InterventionPanel
+              outcome={outcome}
+              prediction={prediction}
+              contrastExample={outcome.contrastExample || task.contrastExample}
+              hasVariantTask={hasVariant}
+              onRetryTask={handleRetryTask}
+              onLaunchVariantTask={handleLaunchVariantTask}
+              onApplyContrastSql={handleApplyContrastSql}
+              aiExplanation={aiExplanation}
             />
           )}
         </div>
