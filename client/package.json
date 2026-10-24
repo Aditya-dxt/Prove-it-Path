@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "test": "tsc -p tsconfig.test.json && echo '{\"type\": \"commonjs\"}' > dist-test/package.json && node test/runMilestone3Tests.cjs",
+    "test": "tsc -p tsconfig.test.json && node -e \"fs.writeFileSync('dist-test/package.json', JSON.stringify({type:'commonjs'}))\" && node test/runMilestone3Tests.cjs",
     "preview": "vite preview"
   },
   "dependencies": {

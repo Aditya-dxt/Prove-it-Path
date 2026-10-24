@@ -1,0 +1,16 @@
+{
+  "name": "prove-it-path",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prove-it-Path: Mastery-Driven SQL Learning Platform",
+  "scripts": {
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build:client": "cd client && npm run build",
+    "build:server": "cd server && npm run build",
+    "build": "npm run build:client && npm run build:server",
+    "test:client": "cd client && npm test",
+    "test:server": "cd server && npm test",
+    "test": "npm run test:client && npm run test:server"
+  }
+}

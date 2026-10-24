@@ -51,13 +51,22 @@ export const LearningWorkspacePage: React.FC<LearningWorkspacePageProps> = ({
     setSubmittedSql(userSql);
 
     try {
-      const evaluationResult = await runMockEvaluation(
-        task,
-        userSql,
-        prediction,
-        { simulatedDelayMs: 400 },
-        roadmap
-      );
+      let evaluationResult: EvaluationOutcome;
+      try {
+        evaluationResult = await apiClient.submitAttempt({
+          taskId: task.id,
+          sql: userSql,
+          prediction
+        });
+      } catch {
+        evaluationResult = await runMockEvaluation(
+          task,
+          userSql,
+          prediction,
+          { simulatedDelayMs: 400 },
+          roadmap
+        );
+      }
       setOutcome(evaluationResult);
       setRoadmap(evaluationResult.roadmap);
       setRemainingMinutes(evaluationResult.remainingMinutes);
