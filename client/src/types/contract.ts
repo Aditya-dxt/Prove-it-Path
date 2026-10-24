@@ -81,11 +81,22 @@ export interface AIExplanationResponse {
   fallbackUsed: boolean;
 }
 
+export interface PersonalizedGoalContext {
+  rawGoalText: string;
+  experienceLevel: 'beginner' | 'some_experience' | 'comfortable';
+  timePerSessionMinutes: 15 | 30 | 45 | 60;
+  deadline?: string;
+  focusTopics?: string[];
+  startingNodeId: string;
+  rationale?: string;
+}
+
 export interface LearningGoal {
   id: string;
   title: string;
   description: string;
   estimatedMinutes: number;
+  personalizedContext?: PersonalizedGoalContext;
 }
 
 export type Goal = LearningGoal;

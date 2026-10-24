@@ -144,6 +144,40 @@ export const LearningWorkspacePage: React.FC<LearningWorkspacePageProps> = ({
         onRestartGoal={onRestartGoal}
       />
 
+      {/* Personalized Context Banner if present */}
+      {goal.personalizedContext && (
+        <div
+          style={{
+            background: 'var(--bg-surface-subtle)',
+            border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.65rem 1rem',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.82rem',
+            color: 'var(--text-muted)',
+            flexWrap: 'wrap',
+            gap: '0.5rem'
+          }}
+        >
+          <div>
+            <strong style={{ color: 'var(--text-main)' }}>Custom Plan: </strong>
+            <span>
+              Calibrated for {goal.personalizedContext.experienceLevel.replace('_', ' ')}
+              {goal.personalizedContext.focusTopics && goal.personalizedContext.focusTopics.length > 0 &&
+                ` • Focusing on ${goal.personalizedContext.focusTopics.map((t) => t.toUpperCase()).join(', ')}`}
+            </span>
+          </div>
+          {goal.personalizedContext.deadline && (
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-subtle)' }}>
+              Target: {goal.personalizedContext.deadline}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* 5-Node SQL Roadmap with Adaptive Re-check Support */}
       <RoadmapView
         nodes={roadmap}

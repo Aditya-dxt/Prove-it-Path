@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { LearningGoal } from './types/contract';
-import { GoalSelectionPage } from './pages/GoalSelectionPage';
+import { OnboardingPage } from './pages/OnboardingPage';
 import { LearningWorkspacePage } from './pages/LearningWorkspacePage';
 
 export const App: React.FC = () => {
   const [selectedGoal, setSelectedGoal] = useState<LearningGoal | null>(null);
-  const [activeScreen, setActiveScreen] = useState<'goal_selection' | 'workspace'>('goal_selection');
+  const [activeScreen, setActiveScreen] = useState<'onboarding' | 'workspace'>('onboarding');
 
   const handleConfirmGoal = (goal: LearningGoal) => {
     setSelectedGoal(goal);
@@ -13,14 +13,14 @@ export const App: React.FC = () => {
   };
 
   const handleRestartGoal = () => {
-    setActiveScreen('goal_selection');
+    setActiveScreen('onboarding');
   };
 
   return (
     <div className="app-viewport">
-      {activeScreen === 'goal_selection' ? (
-        <GoalSelectionPage
-          initialSelectedGoal={selectedGoal}
+      {activeScreen === 'onboarding' ? (
+        <OnboardingPage
+          initialGoal={selectedGoal}
           onConfirmGoal={handleConfirmGoal}
         />
       ) : selectedGoal ? (
@@ -29,7 +29,7 @@ export const App: React.FC = () => {
           onRestartGoal={handleRestartGoal}
         />
       ) : (
-        <GoalSelectionPage onConfirmGoal={handleConfirmGoal} />
+        <OnboardingPage onConfirmGoal={handleConfirmGoal} />
       )}
     </div>
   );

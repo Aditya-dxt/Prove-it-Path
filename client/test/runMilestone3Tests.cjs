@@ -1,6 +1,7 @@
 const assert = require('node:assert');
 const { compareQueryResults, formatCellValue } = require('../dist-test/lib/diffUtils.js');
 const { runMockEvaluation } = require('../dist-test/lib/mockEngine.js');
+const { interpretLearningGoal } = require('../dist-test/lib/goalInterpreter.js');
 const { STARTER_TASK, VARIANT_TASK, INITIAL_ROADMAP_NODES } = require('../dist-test/data/tasks.js');
 
 console.log('--- STARTING MILESTONE 3 VERIFICATION SUITE ---\n');
@@ -260,6 +261,67 @@ async function runAll() {
     const recheckNode = outcome.roadmap.find((n) => n.id === 'select-recheck');
     assert.strictEqual(recheckNode.status, 'repaired', 'Re-check node must be marked as repaired');
     assert.strictEqual(outcome.remainingMinutes, 35, 'Remaining minutes adjusted after repair');
+  });
+
+  // ==========================================
+  // SCENARIO GROUP 4: PERSONALIZED GOAL INTERPRETER
+  // ==========================================
+
+  test('4.1 Interview goal classification & keyword extraction', () => {
+    const plan = interpretLearningGoal({
+      rawGoalText: 'I have an SQL interview next week and need to practice JOINs.',
+      experienceLevel: 'some_experience',
+      timePerSession: 30,
+      deadline: 'next week'
+    });
+
+    assert.strictEqual(plan.title, 'Technical Interview Preparation');
+    assert.strictEqual(plan.deadline, 'next week');
+    assert.strictEqual(plan.timePerSession, 30);
+    assert(plan.strugglingTopics.includes('join'), 'Must extract JOIN keyword');
+  });
+
+  test('4.2 Analytics goal classification & GROUP BY extraction', () => {
+    const plan = interpretLearningGoal({
+      rawGoalText: 'I analyze business metrics and dashboard data at work, need GROUP BY aggregations.',
+      experienceLevel: 'beginner',
+      timePerSession: 45
+    });
+
+    assert.strictEqual(plan.title, 'Workplace Data Analysis');
+    assert(plan.strugglingTopics.includes('groupby'), 'Must extract groupby keyword');
+    assert.strictEqual(plan.recommendedStartingNodeId, 'select', 'Beginners start with select');
+  });
+
+  test('4.3 Comfortable user starting node calibration', () => {
+    const plan = interpretLearningGoal({
+      rawGoalText: 'I write backend APIs and want to master complex joins.',
+      experienceLevel: 'comfortable',
+      timePerSession: 60,
+      strugglingTopics: ['join']
+    });
+
+    assert.strictEqual(plan.title, 'Backend Database Foundations');
+    assert.strictEqual(plan.recommendedStartingNodeId, 'join', 'Comfortable user struggling with join starts at join');
+    const joinTopic = plan.topicPlans.find((t) => t.nodeId === 'join');
+    assert.strictEqual(joinTopic.priority, 'focus');
+    assert.strictEqual(joinTopic.isStartingNode, true);
+  });
+
+  test('4.4 Topic plans contain full 5-node curriculum with rationale', () => {
+    const plan = interpretLearningGoal({
+      rawGoalText: 'Strengthen fundamentals',
+      experienceLevel: 'beginner',
+      timePerSession: 15
+    });
+
+    assert.strictEqual(plan.topicPlans.length, 5);
+    const nodeIds = plan.topicPlans.map((t) => t.nodeId);
+    assert.deepStrictEqual(nodeIds, ['select', 'where', 'orderby', 'groupby', 'join']);
+    plan.topicPlans.forEach((t) => {
+      assert(t.reason.length > 0, `Topic ${t.nodeId} must have an explanatory reason`);
+      assert(['focus', 'core', 'advanced', 'foundation'].includes(t.priority));
+    });
   });
 
   console.log(`\n--- ALL ${passedTests} TESTS PASSED SUCCESSFULLY! ---`);

@@ -14,7 +14,9 @@
   "include": [
     "src/lib/diffUtils.ts",
     "src/lib/mockEngine.ts",
+    "src/lib/goalInterpreter.ts",
     "src/data/tasks.ts",
-    "src/types/contract.ts"
+    "src/types/contract.ts",
+    "src/types/onboarding.ts"
   ]
 }
